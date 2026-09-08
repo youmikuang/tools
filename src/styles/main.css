@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import './variables.css';
 
 
@@ -72,7 +71,7 @@
 }
 
 :root :where(.cm-gutters) {
-  background: var(--editor-gutter);
+  background: var(--editor-bg);
   border-right: 1px solid var(--editor-border);
 }
 
@@ -83,4 +82,14 @@
 :root :where(.cm-scroller) {
   font-family: var(--font-mono);
   font-size: 14px;
+}
+
+/* 浅色模式下强制行号与正文配色，覆盖 oneDark 残留/CodeMirror 默认黑字 */
+:root:not([data-theme='dark']) .cm-gutters,
+:root:not([data-theme='dark']) .cm-lineNumbers .cm-gutterElement {
+  color: var(--editor-line-number) !important;
+}
+
+:root:not([data-theme='dark']) .cm-content {
+  color: var(--text-primary) !important;
 }

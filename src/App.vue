@@ -77,7 +77,9 @@ function handleThemeToggle(e: MouseEvent) {
     // Check the NEW theme state (after toggle)
     const isDarkNow = isDark.value
 
-    // Inject z-index style based on direction
+    // 浅->深：新主题(new)从点击点向外扩散铺开
+    // 深->浅：旧主题(old)从四周向点击点收缩退去
+    const targetPseudo = isDarkNow ? '::view-transition-new(root)' : '::view-transition-old(root)'
     const zIndexStyle = document.createElement('style')
     zIndexStyle.textContent = `
       ::view-transition-old(root) { z-index: ${isDarkNow ? 1 : 9999}; }
@@ -85,22 +87,31 @@ function handleThemeToggle(e: MouseEvent) {
     `
     document.head.appendChild(zIndexStyle)
 
-    const clipPath = [
-      `circle(0px at ${(x / innerWidth) * 100}% ${(y / innerHeight) * 100}%)`,
-      `circle(${endRadius}px at ${(x / innerWidth) * 100}% ${(y / innerHeight) * 100}%)`,
-    ]
+    // 圆形扩散：面积 ∝ r²。按"前快后慢"的节奏分配半径：
+    // 面积占比 a_k = (k/N)^EXP（EXP<1 → 前期 a 增长快、后期收敛慢），
+    // 半径 r_k = R·√a_k = R·(k/N)^(EXP/2)。
+    // EXP=1 为均匀面积等分；EXP=0.5 即半径 R·(k/N)^0.25，前半段跳跃多、后半段少。
+    const cx = (x / innerWidth) * 100
+    const cy = (y / innerHeight) * 100
+    const N = 12
+    const EXP = 1
+    const radii: number[] = []
+    for (let k = 0; k <= N; k++) radii.push(endRadius * Math.pow(k / N, EXP / 2))
+    // expand = 从 0 扩散到 R（浅->深）；contract = 反向（深->浅）
+    const order = isDarkNow ? radii : [...radii].reverse()
+    const clips: string[] = order.map((r) => `circle(${r}px at ${cx}% ${cy}%)`)
 
-    const animation = document.documentElement.animate(
-      {
-        clipPath: isDarkNow ? clipPath : [...clipPath].reverse(),
-      },
-      {
-        duration: 270,
-        easing: 'ease-in-out',
-        pseudoElement: isDarkNow ? '::view-transition-new(root)' : '::view-transition-old(root)',
-      },
-    )
-
+    // 用单个连续 keyframes 动画（而非多段递归），避免段间空隙导致的闪烁，
+    // 尤其是深->浅收缩时 old 在最底层、段间隙会让环带边缘反复闪。
+    const keyframes = clips.map((c, idx) => ({
+      clipPath: c,
+      offset: idx / (clips.length - 1),
+    }))
+    const animation = document.documentElement.animate(keyframes, {
+      duration: N * 14,
+      easing: 'linear',
+      pseudoElement: targetPseudo,
+    })
     animation.finished.then(() => {
       zIndexStyle.remove()
     })

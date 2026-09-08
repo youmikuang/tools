@@ -11,12 +11,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 常用命令
 
 ```sh
-npm run dev          # 本地开发（Vite HMR）
-npm run build        # 生产构建：run-p 并行跑 type-check 和 vite build（注意是并行，不是串行）
-npm run test         # Vitest watch 模式
-npm run test -- run  # 一次性跑全部测试
-npm run type-check   # 仅类型检查（vue-tsc --build）
-npm run format       # Prettier 格式化 src/
+pnpm run dev          # 本地开发（Vite HMR）
+pnpm run build        # 生产构建：run-p 并行跑 type-check 和 vite build（注意是并行，不是串行）
+pnpm run test         # Vitest watch 模式
+pnpm run test -- run  # 一次性跑全部测试
+pnpm run type-check   # 仅类型检查（vue-tsc --build）
+pnpm run format       # Prettier 格式化 src/
 ```
 
 跑单个测试文件 / 单个用例：
@@ -100,7 +100,7 @@ src/
 
 ## 代码风格与测试
 
-- **Prettier**（[.prettierrc.json](.prettierrc.json)）：**无分号、单引号、printWidth 100**。部分早期文件（`useTheme`、`CodeMirrorEditor`、`BaseIcon` 等）仍带分号、尚未统一——新代码请遵循上述配置，必要时 `npm run format`。
+- **Prettier**（[.prettierrc.json](.prettierrc.json)）：**无分号、单引号、printWidth 100**。部分早期文件（`useTheme`、`CodeMirrorEditor`、`BaseIcon` 等）仍带分号、尚未统一——新代码请遵循上述配置，必要时 `pnpm run format`。
 - **组件**统一 `<script setup lang="ts">`；props/emits 用类型化的 `defineProps<T>()` / `defineEmits<T>()`；样式用 `<style scoped>`，跨组件穿透用 `:deep()`。
 - **TS strict + `noUncheckedIndexedAccess` 生效**，所以数组下标取值后到处是 `!`（如 `slots.value[index]!`）——沿用这个写法，别为了去掉 `!` 放宽 tsconfig。
 - **测试**用 Vitest + `@vue/test-utils` + jsdom，只收 `src/__tests__/**/*.{test,spec}.*`。业务逻辑尽量抽到 `utils/` 的纯函数里以便单测（`imageUtils` 的校验/预设函数就是这么测的）；组件测试需要 mock `CodeMirrorEditor`、`navigator.clipboard`、`URL.createObjectURL`，并自行注册 i18n 插件（见上文"已知状态"）。

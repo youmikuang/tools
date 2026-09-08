@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '@/composables/useToast'
 import BaseIcon from '@/components/base/BaseIcon.vue'
@@ -35,17 +35,6 @@ const stopTimer = () => {
     timer = null
   }
   isRunning.value = false
-}
-
-const toggleUnit = () => {
-  isMillisecond.value = !isMillisecond.value
-  if (timestampInput.value) {
-    if (isMillisecond.value) {
-      timestampInput.value = timestampInput.value.replace(/\d{3}$/, '') + '000'
-    } else {
-      timestampInput.value = timestampInput.value.replace(/000$/, '')
-    }
-  }
 }
 
 const copyCurrentTimestamp = async () => {
@@ -104,6 +93,24 @@ const convertTimestampToDate = () => {
   timestampToDateResult.value = formatDateInTimezone(date, selectedTimezone.value)
 }
 
+const toggleUnit = () => {
+  isMillisecond.value = !isMillisecond.value
+  // 同步「时间戳转日期」输入框的单位，保证数值与解析单位一致
+  const prevUnit = timestampUnit.value
+  timestampUnit.value = isMillisecond.value ? 'ms' : 's'
+
+  const raw = timestampInput.value.trim()
+  const ts = Number(raw)
+  if (!raw || isNaN(ts)) {
+    // 无有效输入时，直接填入当前时间戳（按新单位）
+    timestampInput.value = String(currentTimestamp.value)
+  } else {
+    // 按切换前的单位换算：秒 -> 毫秒 ×1000；毫秒 -> 秒 ÷1000
+    timestampInput.value = String(prevUnit === 's' ? ts * 1000 : Math.floor(ts / 1000))
+  }
+  convertTimestampToDate()
+}
+
 const convertDateToTimestamp = () => {
   if (!dateInput.value.trim()) {
     showToast('Please enter a date', 'warning')
@@ -133,6 +140,14 @@ const fillCurrentDate = () => {
   const now = new Date()
   dateInput.value = `${now.getFullYear()}-${padZero(now.getMonth() + 1)}-${padZero(now.getDate())} ${padZero(now.getHours())}:${padZero(now.getMinutes())}:${padZero(now.getSeconds())}`
 }
+
+// 单位/时区/输入变化时自动刷新结果，避免显示与当前单位不一致
+watch([timestampUnit, selectedTimezone, timestampInput], () => {
+  if (timestampInput.value.trim()) convertTimestampToDate()
+})
+watch([dateUnit, dateInput], () => {
+  if (dateInput.value.trim()) convertDateToTimestamp()
+})
 
 onMounted(() => {
   startTimer()
